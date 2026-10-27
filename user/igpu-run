@@ -1,0 +1,9 @@
+#!/bin/sh
+# Run a program on the AMD iGPU only, so it never wakes the NVIDIA dGPU:
+#  - Mesa-only EGL: NVIDIA's EGL opens /dev/nvidia0 just by being loaded
+#  - GTK4 on GL instead of Vulkan: Vulkan enumerates (and wakes) every GPU
+#  - VA-API/DMABuf on the iGPU render node (renderD128 is NVIDIA)
+export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+export GSK_RENDERER=ngl
+export MOZ_DRM_DEVICE=/dev/dri/by-path/pci-0000:06:00.0-render
+exec "$@"

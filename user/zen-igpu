@@ -1,0 +1,7 @@
+#!/bin/sh
+# Run Zen on the AMD iGPU only, so browsing and video never wake the NVIDIA dGPU:
+#  - MOZ_DRM_DEVICE: VA-API/DMABuf on the iGPU render node (renderD128 is NVIDIA)
+#  - Mesa-only EGL: NVIDIA's EGL opens /dev/nvidia0 just by being loaded
+export MOZ_DRM_DEVICE=/dev/dri/by-path/pci-0000:06:00.0-render
+export __EGL_VENDOR_LIBRARY_FILENAMES=/usr/share/glvnd/egl_vendor.d/50_mesa.json
+exec /opt/zen-browser-bin/zen-bin "$@"

@@ -1,0 +1,33 @@
+#!/bin/bash
+# Run the laptop panel at 60 Hz on battery and 240 Hz on AC.
+# Follows UPower's OnBattery, the same signal the Omarchy shell uses.
+
+OUTPUT=eDP-1
+AC_HZ=240
+BATTERY_HZ=60
+
+on_battery() {
+    [[ $(busctl get-property org.freedesktop.UPower /org/freedesktop/UPower \
+        org.freedesktop.UPower OnBattery 2>/dev/null) == "b true" ]]
+}
+
+apply() {
+    local hz=$AC_HZ geom
+    on_battery && hz=$BATTERY_HZ
+    # Keep the current resolution, position and scale; only change the rate.
+    geom=$(hyprctl monitors -j | jq -r --arg o "$OUTPUT" \
+        '.[] | select(.name == $o) | "\(.width)x\(.height) \(.x)x\(.y) \(.scale) \(.refreshRate | round)"') || return
+    [[ -n $geom ]] || return
+    read -r res pos scale current <<<"$geom"
+    [[ $current == "$hz" ]] && return
+    hyprctl eval "hl.monitor({ output = \"$OUTPUT\", mode = \"$res@$hz\", position = \"$pos\", scale = $scale })" >/dev/null
+}
+
+# Wait for Hyprland after login
+until hyprctl monitors -j >/dev/null 2>&1; do sleep 1; done
+apply
+
+gdbus monitor --system --dest org.freedesktop.UPower --object-path /org/freedesktop/UPower |
+    while read -r line; do
+        [[ $line == *OnBattery* ]] && apply
+    done

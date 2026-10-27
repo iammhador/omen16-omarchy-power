@@ -1,0 +1,12 @@
+[Unit]
+Description=Panel refresh rate by power source (60 Hz battery, 240 Hz AC)
+PartOf=graphical-session.target
+After=graphical-session.target
+
+[Service]
+ExecStart=%h/.local/bin/refresh-by-power
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=graphical-session.target

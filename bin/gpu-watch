@@ -1,0 +1,24 @@
+#!/bin/bash
+# Log every NVIDIA dGPU power-state change and which processes hold it open.
+# Usage: gpu-watch [seconds]   (default: until Ctrl+C)
+DEV=/sys/bus/pci/devices/0000:01:00.0/power/runtime_status
+end=$(( ${1:+$(date +%s) + $1} ))
+last=
+
+holders() {
+    local p
+    for p in /proc/[0-9]*; do
+        ls -l "$p/fd" 2>/dev/null | grep -qE '/dev/nvidia[0-9]|/dev/dri/renderD128' &&
+            printf '    %s %s\n' "${p#/proc/}" "$(tr '\0' ' ' < "$p/cmdline" | cut -c1-90)"
+    done
+}
+
+while (( !end || $(date +%s) < end )); do
+    state=$(cat "$DEV")
+    if [[ $state != "$last" ]]; then
+        echo "$(date +%T) $state"
+        [[ $state == active ]] && holders
+        last=$state
+    fi
+    sleep 0.5
+done
